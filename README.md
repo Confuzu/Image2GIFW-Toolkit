@@ -1,9 +1,19 @@
 #### Image2GIFW-Toolkit
 
-The Image2GIFW-Toolkit is a toolset designed to create GIFs from image sets and manage them. Plus Wildcard creation. It consists of three primary scripts that provide the following functionalities:
+#### WHY? 
+My goal with this project was to create GIFs for Loras, embedings, and models. I felt that a single image doesn't always show what a model is capable of. However, creating GIFs manually is pretty tedious and monotonous, so I thought I'd try to automate it to a certain extent. The result is the Project Image2GIFW toolkit, which could be a very good addition to my other project, CivitAI-Model-grabber. 
+What i also added in the course of the development is the wildcard creation which simply creates a txt file with the names of the .pt or safetensors files. 
+
+
+It consists of three primary scripts that provide the following functionalities:
 
 - **Simplify GIF Creation**: Easily convert image sequences into GIFs with customizable options.
+    For the dimensions of the gif, the values of the first image that is processed are used. target size = image size. 
+    The images that do not fit are adjusted with Resampling.LANCZOS
+  
 - **Efficient File Management**: Rename GIFs to align with corresponding model files, for better organization and accessibility.
+    
+
 - **Wildcard Functionality**: Creates a txt File with the names of the .pt or .safetensors files to use is as a wildcard txt file.
 
 ### Installation
@@ -74,7 +84,7 @@ This script renames GIFs based on corresponding `.pt` or `.safetensors` files, o
 
 ##### Options:
 - **Image folder**: Directory containing GIFs and model files.
-- **Minimum substring length**: Minimum length for matching substrings (default: 3).
+- **Minimum substring length**: Minimum length for matching substrings (default: 4).
 - **Mode**:
   - **Normal**: Renames GIFs directly.
   - **With Confirmation**: Shows changes before applying them.
@@ -119,7 +129,7 @@ python wildcard_creator.py
   - **`filename_pattern`**: Pattern to filter image filenames.
 
 - **GIF Renamer (`gif_rename_with_model_name.py`)**:
-  - **`min_substring_length`**: Minimum length for matching substrings (default: 3).
+  - **`min_substring_length`**: Minimum length for matching substrings (default: 4).
   - **`mode`**: Choose between Normal, With Confirmation, or Dry Run modes.
 
 - **Wildcard Creator (`wildcard_creator.py`)**:
