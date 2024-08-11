@@ -122,7 +122,7 @@ python wildcard_creator.py
 #### Tips for Use
 
 - **Image to GIF Creator**:
- kren  - The recursive option is beneficial for processing multiple subdirectories.
+  - The recursive option is beneficial for processing multiple subdirectories.
 
 - **GIF Renamer**:
   - Start with a dry run to preview potential changes.
