@@ -33,7 +33,8 @@ It consists of three primary scripts that provide the following functionalities:
 
 3. **Set Up Directories**:
    - Place all image and model files in the directories you plan to use.
-   - Ensure write permissions for the directories where you want to save output files.
+   - Ensure write permissions for the directories where you want to save output files. <br /> 
+
 
 ### Usage
 
@@ -59,9 +60,10 @@ You will be presented with the following options:
 - **Logging**: Each script creates a log file in the script directory with detailed execution information.
 - **Error Handling**: Comprehensive error handling with user-friendly messages and detailed logging.
 
-##### Single Script Usage 
 
-#### 1. Image to GIF Creator (`imagetogif.py`)
+### Single Script Usage 
+
+### 1. Image to GIF Creator (`imagetogif.py`)
 
 This script converts image sequences into GIFs with various configurable options.
 
@@ -69,7 +71,7 @@ This script converts image sequences into GIFs with various configurable options
 - **Image folder**: Specify the directory containing the images.
 - **Output folder**: Define where to save the resulting GIFs (default is the same as the image folder).
 - **Group size**: Number of images per GIF. Default is to group by common substrings.
-- **Duration**: Duration of each frame in milliseconds (default: 1000ms).
+- **Duration**: Duration of each frame in milliseconds (default: 2000 milliseconds / 2 sec).
 - **Recursive**: Option to search subfolders (yes/no).
 - **Filename pattern**: Optional pattern to match image filenames.
 
@@ -78,7 +80,8 @@ This script converts image sequences into GIFs with various configurable options
 python imagetogif.py
 ```
 
-#### 2. GIF Renamer (`gif_rename_with_model_name.py`)
+
+### 2. GIF Renamer (`gif_rename_with_model_name.py`)
 
 This script renames GIFs based on corresponding `.pt` or `.safetensors` files, offering several modes for customization.
 
@@ -87,25 +90,34 @@ This script renames GIFs based on corresponding `.pt` or `.safetensors` files, o
 - **Minimum substring length**: Minimum length for matching substrings (default: 4).
 - **Mode**:
   - **Normal**: Renames GIFs directly.
-  - **With Confirmation**: Shows changes before applying them.
-  - **Dry Run**: Simulates renaming to show potential changes without modifying files.
+  - **With Confirmation**: Shows changes before applying them. Only in Terminal
+  - **Dry Run**: Simulates renaming to show potential changes without modifying files. Results in Terminal and process_log_gif_rename.txt
+
+     A smaller value (e.g., 2 or 3) will allow for more liberal matching, 
+     potentially catching more files but also increasing the risk of false matches.
+
+     A larger value (e.g., 5 or 6) will require a longer common substring, 
+     reducing the chance of false matches but potentially missing some files that should be renamed.<br /> 
 
 
 ```bash
 python gif_rename_with_model_name.py
 ```
 
-#### 3. Wildcard Creator (`wildcard_creator.py`)
+
+### 3. Wildcard Creator (`wildcard_creator.py`)
 
 Generates a list of `.pt` and `.safetensors` files from a specified directory, useful for organizing model files.
 
 ##### Options:
 - **Image folder**: Directory to search for model files.
-- **Output file name**: Name of the output text file (default: `model_files.txt`).
+- **Output file name**: Name of the output text file (default: `model_files.txt`). Output folder is the script folder <br /> 
+
 
 ```bash
 python wildcard_creator.py
 ```
+
 
 #### Tips for Use
 
