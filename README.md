@@ -5,14 +5,14 @@ My goal with this project was to create GIFs for Loras, embedings, and models. I
 What i also added in the course of the development is the wildcard creation which simply creates a txt file with the names of the .pt or safetensors files. 
 
 
-It consists of three primary scripts that provide the following functionalities:
+It consists of three primary scripts and the main.py that provide the following functionalities:
 
 - **Simplify GIF Creation**: Easily convert image sequences into GIFs with customizable options.
     For the dimensions of the gif, the values of the first image that is processed are used. target size = image size. 
     The images that do not fit are adjusted with Resampling.LANCZOS
   
 - **Efficient File Management**: Rename GIFs to align with corresponding model files, for better organization and accessibility.
-    
+   
 
 - **Wildcard Functionality**: Creates a txt File with the names of the .pt or .safetensors files to use is as a wildcard txt file.
 
