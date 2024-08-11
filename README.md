@@ -4,7 +4,7 @@ The Image2GIFW-Toolkit is a toolset designed to create GIFs from image sets and 
 
 - **Simplify GIF Creation**: Easily convert image sequences into GIFs with customizable options.
 - **Efficient File Management**: Rename GIFs to align with corresponding model files, for better organization and accessibility.
-- **Wildcard Functionality**: Generate wildcard lists of model files.
+- **Wildcard Functionality**: Creates a txt File with the names of the .pt or .safetensors files to use is as a wildcard txt file.
 
 ### Installation
 
