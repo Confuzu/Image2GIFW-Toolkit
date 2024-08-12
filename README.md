@@ -1,4 +1,4 @@
-# Image2GIFW-Toolkit
+# Image2GIFW-Toolkit 0.1
 
 #### WHY? 
 My goal with this project was to create GIFs for Loras, embedings, and models. I felt that a single image doesn't always show what a model is capable of. However, creating GIFs manually is pretty tedious and monotonous, so I thought I'd try to automate it to a certain extent. The result is the Project Image2GIFW toolkit, which could be a very good addition to my other project, CivitAI-Model-grabber. 
