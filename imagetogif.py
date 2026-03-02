@@ -1,27 +1,13 @@
 import os
-import imageio.v3 as iio
+import argparse
 from PIL import Image
 from collections import defaultdict
 import re
 import logging
 
-script_dir = os.path.dirname(os.path.abspath(__file__))
+from logging_config import setup_logging
 
-# Configure logger for imagetogif_V1.py
-logger_imagetogif = logging.getLogger('imagetogif')
-logger_imagetogif.setLevel(logging.DEBUG)
-
-# Add file handler
-log_file_path = os.path.join(script_dir, "process_log_imagetogif.txt")
-file_handler_imagetogif = logging.FileHandler(log_file_path, encoding='utf-8')
-file_handler_imagetogif.setLevel(logging.DEBUG)
-
-# Add format handler
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-file_handler_imagetogif.setFormatter(formatter)
-
-# Add handler to the logger
-logger_imagetogif.addHandler(file_handler_imagetogif)
+logger_imagetogif = logging.getLogger('image2gifw.imagetogif')
 
 def remove_common_parts(filename):
     # Remove file extension
@@ -30,36 +16,71 @@ def remove_common_parts(filename):
     common_terms = ['safetensors', 'XL']
     for term in common_terms:
         filename = filename.replace(term, '')
-    # Remove numbers and underscores
-    filename = re.sub(r'[\d_]', '', filename)
-    return filename.strip()
+    # Only strip digits if the filename contains alphabetic characters
+    # (model-name files like "CoolModel_v2"). For numeric-only filenames
+    # (e.g. SD image outputs "00425-2068717781-0000"), digits are the
+    # meaningful identifiers and must be preserved.
+    if re.search(r'[a-zA-Z]', filename):
+        filename = re.sub(r'[\d_]', '', filename)
+    else:
+        filename = re.sub(r'_', '-', filename)
+    return filename.strip('-_ ')
+
+def find_longest_common_substring(str1, str2):
+    """Find the longest common substring using dynamic programming. O(n*m)."""
+    if not str1 or not str2:
+        return ""
+    m, n = len(str1), len(str2)
+    prev = [0] * (n + 1)
+    best_len = 0
+    best_end = 0
+    for i in range(1, m + 1):
+        curr = [0] * (n + 1)
+        for j in range(1, n + 1):
+            if str1[i - 1] == str2[j - 1]:
+                curr[j] = prev[j - 1] + 1
+                if curr[j] > best_len:
+                    best_len = curr[j]
+                    best_end = i
+        prev = curr
+    return str1[best_end - best_len:best_end]
+
 
 def find_common_substrings(filenames):
-    def get_substrings(s):
-        return set(s[i:j] for i in range(len(s)) for j in range(i + 1, len(s) + 1) if len(s[i:j]) > 3)
-
+    """Find the longest common substring across all filenames. Returns a list for compatibility."""
     if not filenames:
         return []
 
     cleaned_filenames = [remove_common_parts(f) for f in filenames]
-    common_substrings = get_substrings(cleaned_filenames[0])
+    result = cleaned_filenames[0]
     for filename in cleaned_filenames[1:]:
-        common_substrings &= get_substrings(filename)
+        result = find_longest_common_substring(result, filename)
+        if not result:
+            return []
 
-    return sorted(common_substrings, key=len, reverse=True)
+    return [result] if len(result) > 3 else []
+
+
 def group_images_by_substring(image_files):
     groups = defaultdict(list)
     for file in image_files:
-        grouped = False
         cleaned_file = remove_common_parts(file)
+        best_key = None
+        best_lcs_len = 0
         for key in groups.keys():
             cleaned_key = remove_common_parts(key)
-            if any(substr in cleaned_file and substr in cleaned_key 
-                   for substr in find_common_substrings([cleaned_key, cleaned_file])):
-                groups[key].append(file)
-                grouped = True
-                break
-        if not grouped:
+            lcs = find_longest_common_substring(cleaned_key, cleaned_file)
+            if len(lcs) > best_lcs_len:
+                best_lcs_len = len(lcs)
+                best_key = key
+        # Use a proportional threshold: LCS must exceed 1/3 of the shorter
+        # filename length (min 4 chars). This prevents grouping on short
+        # coincidental matches like common suffixes.
+        min_len = min(len(cleaned_file), len(remove_common_parts(best_key))) if best_key else 0
+        threshold = max(3, min_len // 3)
+        if best_key and best_lcs_len > threshold:
+            groups[best_key].append(file)
+        else:
             groups[file] = [file]
     return groups
 
@@ -115,14 +136,14 @@ def create_gifs_from_folder(image_folder, output_folder, group_size=None, durati
                 for base_name, group in image_groups.items():
                     if len(group) > 1:  # Only create GIFs for groups with more than one image
                         common_substrings = find_common_substrings(group)
-                        gif_name = f"{common_substrings[0] if common_substrings else 'group'}.gif"
-                        gif_name = gif_name.replace('..', '.')  # Remove any double dots
+                        name_part = common_substrings[0].strip('-_ ') if common_substrings else 'group'
+                        gif_name = f"{name_part}.gif"
                         output_path = os.path.join(output_folder, gif_name)
                         create_gif(group, output_path)
             else:
                 for i in range(0, len(image_files), group_size):
                     group = image_files[i:i + group_size]
-                    if len(group) == group_size:
+                    if len(group) > 1:
                         base_name = os.path.splitext(group[0])[0]
                         gif_name = f"{base_name}_{i//group_size+1}.gif"
                         output_path = os.path.join(output_folder, gif_name)
@@ -138,23 +159,21 @@ def create_gifs_from_folder(image_folder, output_folder, group_size=None, durati
         print(f"An error occurred during GIF creation: {str(e)}")
 
 if __name__ == "__main__":
+    setup_logging()
+    parser = argparse.ArgumentParser(description='Create GIFs from image sequences')
+    parser.add_argument('image_folder', help='Folder containing images')
+    parser.add_argument('-o', '--output', default=None, help='Output folder (default: same as image folder)')
+    parser.add_argument('-g', '--group-size', type=int, default=None, help='Number of images per GIF (default: group by common substrings)')
+    parser.add_argument('-d', '--duration', type=float, default=1.0, help='Duration per frame in seconds (default: 1.0)')
+    parser.add_argument('-r', '--recursive', action='store_true', help='Search in subfolders')
+    parser.add_argument('-p', '--pattern', default=None, help='Filename pattern to match')
+
+    args = parser.parse_args()
+    output_folder = args.output if args.output else args.image_folder
+    duration_ms = args.duration * 1000.0
+
     try:
-        image_folder = input('Enter the image folder: ')
-        output_folder = input('Enter the output folder (press Enter to use the same as image folder): ')
-        if not output_folder:
-            output_folder = image_folder
-        group_size = input('Enter group size number of images per GIF (press Enter to group by common substrings): ')
-        duration = input('Duration per frame in seconds (press Enter for default 1000 ms = 1 seconds): ')
-        recursive = input('Search in subfolders? (yes/no): ').strip().lower() == 'yes'
-        filename_pattern = input('Enter filename pattern to match (optional, press Enter to skip): ')
-
-        group_size = int(group_size) if group_size else None
-        duration = float(duration) * 1000.0 if duration else 1000.0
-
-        create_gifs_from_folder(image_folder, output_folder, group_size=group_size, duration=duration, recursive=recursive, filename_pattern=filename_pattern)
-    except ValueError as ve:
-        logger_imagetogif.error(f"Invalid input: {ve}")
-        print(f"Invalid input: {ve}")
+        create_gifs_from_folder(args.image_folder, output_folder, group_size=args.group_size, duration=duration_ms, recursive=args.recursive, filename_pattern=args.pattern)
     except Exception as e:
         logger_imagetogif.error(f"An unexpected error occurred: {e}")
         print(f"An unexpected error occurred: {e}")
