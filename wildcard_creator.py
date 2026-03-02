@@ -1,23 +1,11 @@
 import os
 import logging
 
+from logging_config import setup_logging
+
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
-# Configure logger for wildcard_creator.py
-logger_wildcard = logging.getLogger('wildcard_creator')
-logger_wildcard.setLevel(logging.DEBUG)
-
-# Add file handler
-log_file_path = os.path.join(script_dir, "process_log_wildcard_creator.txt")
-file_handler_wildcard = logging.FileHandler(log_file_path, encoding='utf-8')
-file_handler_wildcard.setLevel(logging.DEBUG)
-
-# Add format handler
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-file_handler_wildcard.setFormatter(formatter)
-
-# Add handler to the logger
-logger_wildcard.addHandler(file_handler_wildcard)
+logger_wildcard = logging.getLogger('image2gifw.wildcard')
 
 def list_model_files(image_folder, output_file):
     model_files = []
@@ -36,7 +24,9 @@ def list_model_files(image_folder, output_file):
         # Ensure output_file is a file name, not just a directory
         if os.path.isdir(output_file):
             output_file = os.path.join(output_file, "model_files.txt")
-        
+
+        # Sanitize: strip path components to prevent path traversal
+        output_file = os.path.basename(output_file)
         output_file = os.path.join(script_dir, output_file)
 
         # Write the file names to the text file
@@ -60,13 +50,11 @@ def list_model_files(image_folder, output_file):
         print(f"Error: {error_msg}")
 
 if __name__ == "__main__":
-    try:
-        image_folder = input('Please enter the image folder: ')
-        output_file_name = input('Please enter the output file name (press Enter to use default "model_files.txt"): ')
-        list_model_files(image_folder, output_file_name)
-    except KeyboardInterrupt:
-        print("\nOperation cancelled by user.")
-        logger_wildcard.info("Operation cancelled by user.")
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
-        logger_wildcard.error(f"An unexpected error occurred: {e}")
+    import argparse
+    setup_logging()
+    parser = argparse.ArgumentParser(description='Create wildcard list of model filenames')
+    parser.add_argument('image_folder', help='Folder to search for .pt and .safetensors files')
+    parser.add_argument('-o', '--output', default='model_files.txt', help='Output filename (default: model_files.txt)')
+
+    args = parser.parse_args()
+    list_model_files(args.image_folder, args.output)
