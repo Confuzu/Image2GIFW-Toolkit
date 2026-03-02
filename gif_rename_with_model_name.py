@@ -1,43 +1,38 @@
 import os
 import logging
 
-# Changes and explanations:
+from logging_config import setup_logging
+
 # The rename_gifs function takes an additional parameter min_substring_length with a default value of 4.
-
-# A smaller value (e.g., 2 or 3) will allow for more liberal matching, 
+#
+# A smaller value (e.g., 2 or 3) will allow for more liberal matching,
 # potentially catching more files but also increasing the risk of false matches.
-
-# A larger value (e.g., 5 or 6) will require a longer common substring, 
+#
+# A larger value (e.g., 5 or 6) will require a longer common substring,
 # reducing the chance of false matches but potentially missing some files that should be renamed.
 
-import os
-import logging
-
-script_dir = os.path.dirname(os.path.abspath(__file__))
-
-# Configure logger for gif_rename_with_model_name.py
-logger_gif_rename = logging.getLogger('gif_rename')
-logger_gif_rename.setLevel(logging.DEBUG)
-
-# Add file handler
-log_file_path = os.path.join(script_dir, "process_log_gif_rename.txt")
-file_handler_gif_rename = logging.FileHandler(log_file_path, encoding='utf-8')
-file_handler_gif_rename.setLevel(logging.DEBUG)
-
-# Add format handler
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-file_handler_gif_rename.setFormatter(formatter)
-
-# Add handler to the logger
-logger_gif_rename.addHandler(file_handler_gif_rename)
+logger_gif_rename = logging.getLogger('image2gifw.gif_rename')
 
 def find_common_substring(str1, str2):
+    """Find the longest common substring using dynamic programming. O(n*m)."""
     str1 = str1.lower()
     str2 = str2.lower()
-    s1 = set(str1[i:j] for i in range(len(str1)) for j in range(i + 1, len(str1) + 1))
-    s2 = set(str2[i:j] for i in range(len(str2)) for j in range(i + 1, len(str2) + 1))
-    common = s1 & s2
-    return max(common, key=len, default="") if common else ""
+    if not str1 or not str2:
+        return ""
+    m, n = len(str1), len(str2)
+    prev = [0] * (n + 1)
+    best_len = 0
+    best_end = 0
+    for i in range(1, m + 1):
+        curr = [0] * (n + 1)
+        for j in range(1, n + 1):
+            if str1[i - 1] == str2[j - 1]:
+                curr[j] = prev[j - 1] + 1
+                if curr[j] > best_len:
+                    best_len = curr[j]
+                    best_end = i
+        prev = curr
+    return str1[best_end - best_len:best_end]
 
 def rename_gifs(image_folder, min_substring_length=4):
     for root, dirs, files in os.walk(image_folder):
@@ -191,17 +186,19 @@ def rename_gifs_dry_run(image_folder, min_substring_length=4):
     logger_gif_rename.info(f"Dry run completed. {len(changes)} potential changes identified.")
 
 if __name__ == "__main__":
-    image_folder = input('Enter the image folder: ')
-    min_substring_length = input('Enter the minimum common substring length (press Enter for default 4): ')
-    min_substring_length = int(min_substring_length) if min_substring_length else 4
-    
-    mode = input('Choose mode (1: Normal, 2: With Confirmation, 3: Dry Run): ')
-    
-    if mode == '1':
-        rename_gifs(image_folder, min_substring_length)
-    elif mode == '2':
-        rename_gifs_with_confirmation(image_folder, min_substring_length)
-    elif mode == '3':
-        rename_gifs_dry_run(image_folder, min_substring_length)
-    else:
-        print("Invalid mode selected. Exiting.")
+    import argparse
+    setup_logging()
+    parser = argparse.ArgumentParser(description='Rename GIF files based on matching model filenames')
+    parser.add_argument('image_folder', help='Folder containing GIF and model files')
+    parser.add_argument('-m', '--min-length', type=int, default=4, help='Minimum common substring length (default: 4)')
+    parser.add_argument('--mode', choices=['normal', 'confirm', 'dry-run'], default='normal',
+                        help='Rename mode (default: normal)')
+
+    args = parser.parse_args()
+
+    if args.mode == 'normal':
+        rename_gifs(args.image_folder, args.min_length)
+    elif args.mode == 'confirm':
+        rename_gifs_with_confirmation(args.image_folder, args.min_length)
+    elif args.mode == 'dry-run':
+        rename_gifs_dry_run(args.image_folder, args.min_length)
