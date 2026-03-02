@@ -1,4 +1,4 @@
-# Image2GIFW-Toolkit 0.1
+# Image2GIFW-Toolkit 0.2
 
 #### WHY? 
 My goal with this project was to create GIFs for Loras, embedings, and models. I felt that a single image doesn't always show what a model is capable of. However, creating GIFs manually is pretty tedious and monotonous, so I thought I'd try to automate it to a certain extent. The result is the Project Image2GIFW toolkit, which could be a very good addition to my other project, CivitAI-Model-grabber. 
@@ -26,9 +26,9 @@ It consists of three primary scripts and the main.py that provide the following 
 #### Installation Steps
 
 1. **Clone the Repository**:
-    - Ensure all script files (`main.py`, `imagetogif.py`, `gif_rename_with_model_name.py`, `wildcard_creator.py`) are in the same directory.
+    - Ensure all script files (`main.py`, `imagetogif.py`, `gif_rename_with_model_name.py`, `wildcard_creator.py`, `logging_config.py`) are in the same directory.
      ```
-     pip install Pillow imageio
+     pip install -r requirements.txt 
      ```
 
 3. **Set Up Directories**:
@@ -38,14 +38,14 @@ It consists of three primary scripts and the main.py that provide the following 
 
 ### Usage
 
+All scripts support both **CLI arguments** and an **interactive menu**. Running without arguments launches the interactive mode.
+
 #### Main Interface (`main.py`)
 
-The main script provides a unified interface to access all functionalities of the project. Run it using the command:
-
-```
+**Interactive mode** (menu-driven):
+```bash
 python main.py
 ```
-
 You will be presented with the following options:
 
 1. **Create GIFs from images**: Use this option to convert image sequences into GIFs.
@@ -54,14 +54,31 @@ You will be presented with the following options:
 4. **Run all scripts in sequence**: Executes all available functionalities one after another.
 5. **Exit**: Close the application.
 
+**CLI mode** with subcommands:
+```bash
+# Create GIFs from images
+python main.py gif /path/to/images -o /path/to/output -d 1.5 -r
+
+# Rename GIFs based on model filenames
+python main.py rename /path/to/folder --mode dry-run -m 5
+
+# Create wildcard list
+python main.py wildcard /path/to/models -o my_wildcards.txt
+```
+
+Run `python main.py --help` or `python main.py <subcommand> --help` for full option details.
+
+
 #### Additional Features
 
-- **Last Used Directory**: The scripts remember the last directory used for convenience.
-- **Logging**: Each script creates a log file in the script directory with detailed execution information.
+- **Last Used Directory**: The interactive menu remembers the last directory used for convenience.
+- **Centralized Logging**: All modules log to a single `image2gifw.log` file in the script directory.
 - **Error Handling**: Comprehensive error handling with user-friendly messages and detailed logging.
 
 
 ### Single Script Usage 
+
+Each script can also be run standalone with CLI arguments.
 
 ### 1. Image to GIF Creator (`imagetogif.py`)
 
@@ -79,7 +96,21 @@ This script converts image sequences into GIFs with various configurable options
 ```bash
 python imagetogif.py
 ```
+or 
+```bash
+python imagetogif.py /path/to/images -o /path/to/output -g 5 -d 1.0 -r -p "pattern"
+```
 
+##### CLI Options:
+| Option | Description | Default |
+|--------|-------------|---------|
+| `image_folder` | Folder containing images (required) | -- |
+| `-o, --output` | Output folder for GIFs | Same as image folder |
+| `-g, --group-size` | Number of images per GIF | Group by common substrings |
+| `-d, --duration` | Duration per frame in seconds | 1.0 |
+| `-r, --recursive` | Search in subfolders | Off |
+| `-p, --pattern` | Filename pattern to match | None | 
+<br /> 
 
 ### 2. GIF Renamer (`gif_rename_with_model_name.py`)
 
@@ -103,6 +134,18 @@ This script renames GIFs based on corresponding `.pt` or `.safetensors` files, o
 ```bash
 python gif_rename_with_model_name.py
 ```
+or
+```bash
+python gif_rename_with_model_name.py /path/to/folder --mode dry-run -m 5
+```
+
+##### CLI Options:
+| Option | Description | Default |
+|--------|-------------|---------|
+| `image_folder` | Folder containing GIF and model files (required) | -- |
+| `-m, --min-length` | Minimum common substring length | 4 |
+| `--mode` | `normal`, `confirm`, or `dry-run` | normal |
+<br /> 
 
 
 ### 3. Wildcard Creator (`wildcard_creator.py`)
@@ -117,8 +160,19 @@ Generates a list of `.pt` and `.safetensors` files from a specified directory, u
 ```bash
 python wildcard_creator.py
 ```
+or
+```bash
+python wildcard_creator.py /path/to/models -o my_wildcards.txt
+```
 
+##### CLI Options:
+| Option | Description | Default |
+|--------|-------------|---------|
+| `image_folder` | Folder to search for model files (required) | -- |
+| `-o, --output` | Output filename | model_files.txt |
 
+Output is written to the script directory. 
+<br /> 
 #### Tips for Use
 
 - **Image to GIF Creator**:
@@ -174,3 +228,19 @@ python wildcard_creator.py
    - **Solution**: 
      - Consult the log files located in the script directory for detailed error information.
      - Make sure all dependencies are correctly installed using `pip list`.
+
+
+# Update Log
+
+## 0.2
+  - Removed unused imageio import from imagetogif.py                                                                                                                                                                     
+  - Removed duplicate os import from gif_rename_with_model_name.py                                                                                                                                                       
+  - Created requirements.txt (Pillow>=9.1.0)                                                                                                                                                                             
+  - Fixed incomplete last group being dropped when group_size doesn't divide evenly (changed > 1 to >= 1 check -- actually kept > 1 but ensured last group isn't silently skipped)
+  - Sanitized wildcard output filename with os.path.basename() to prevent path traversal
+
+  - Centralized logging: All 4 modules writing to a single image2gifw.log 
+  - Argparse CLI: Added command-line arguments to all entry points:
+    - main.py -- subcommands: gif, rename, wildcard (falls back to interactive menu with no args)
+    - Each standalone module gets its own argparse with -h support
+  - Improved grouping to find the best match (longest LCS) instead of first match, with a proportional threshold (1/3 of filename length) to prevent false grouping on short common suffixes
